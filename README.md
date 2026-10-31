@@ -20,6 +20,12 @@ Community Linux compatibility tooling for WiiM Home, plus a standalone GTK mini 
 
 ![WiiM Mini Escher effect using the album artwork](docs/screenshots/mini-escher.png)
 
+### More fullscreen artwork FX
+
+![WiiM Mini fullscreen artwork distortion with John Coltrane's Naima](docs/screenshots/mini-fx-naima-fullscreen.png)
+
+![WiiM Mini fullscreen swirling artwork with Michael Kiwanuka's FUDGE](docs/screenshots/mini-fx-fudge-fullscreen.png)
+
 ## Included files
 
 | Directory | Contents |
@@ -85,20 +91,15 @@ python3 "$HOME/.local/bin/wiim_tray.py"
 
 WiiM Mini includes playback controls, a volume popup, queue access, track/audio details, a deep-purple tray icon, and a fullscreen toggle. Fullscreen controls hide after 15 seconds of inactivity. Animated effects include Vinyl, Slow Zoom, Floating Sleeve, Liquid, Escher, Water and Wash; Random changes effects every two minutes. Rendering pauses while hidden in the tray.
 
-### Start Mini automatically in KDE
+### KDE menu icon and autostart
+
+Run this as your normal user from the cloned repository:
 
 ```bash
-mkdir -p "$HOME/.config/autostart"
-cat > "$HOME/.config/autostart/wiim-mini.desktop" <<EOF
-[Desktop Entry]
-Type=Application
-Name=WiiM Mini
-Comment=WiiM Mini player
-Exec=python3 "$HOME/.local/bin/wiim_tray.py"
-Terminal=false
-StartupNotify=false
-EOF
+bash scripts/setup-kde-mini.sh
 ```
+
+This creates a deep-purple WiiM Mini icon in the KDE application menu and enables autostart at login. If Mini is already installed in `~/.local/bin/wiim_tray.py`, it is preserved. Otherwise the script installs the repository copy. It does not start another player instance immediately. You can disable autostart later in KDE System Settings → Autostart.
 
 ## Troubleshooting
 

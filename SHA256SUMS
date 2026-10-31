@@ -45,3 +45,6 @@ edd76a24b9f2c4434f23ef3ad0cca87943b22dd0f348c4a16440dad9eee246ac  source/org.wii
 479814c61e87bee9d9bbee865ace5303022982018be1b03ecff0fe60342d960f  source/wha-linux-0.2.10.4.sh
 d92b8657ae6a2df2e046a15986dc6ed05d4be1e1aff424e6316a06cbfe6bdccc  source/wiim-home
 1d4516a38bb92acd5a68c0db9b0819957929e0d21604447aede2b7991ae740fe  source/wiim-home-setup
+97419532327522bf2df40b89577805ba563481f57cea5c39deb90bff6ccc9715  docs/screenshots/mini-fx-naima-fullscreen.png
+1d68cf04b464a983d9b1d44a2fbfa6364eca1668fb7996f5e6cf48ed153efb06  docs/screenshots/mini-fx-fudge-fullscreen.png
+51e1a7b9513f5cf9ed1b5b7ff1e7d4c56bd3a449f0db600625cae8e408f0ed42  scripts/setup-kde-mini.sh
