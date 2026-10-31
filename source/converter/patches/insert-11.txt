@@ -1,0 +1,2 @@
+        if (root.itemsModel.rowCount !== undefined) {
+            return Number(root.itemsModel.rowCount())

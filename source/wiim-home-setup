@@ -1,0 +1,21 @@
+#!/usr/bin/bash
+set -euo pipefail
+if [[ $# -ne 1 || ! -f "$1" ]]; then
+  echo 'Usage: wiim-home-setup /path/to/WiiM\ Home\ Setup-x86_64.dmg' >&2
+  exit 2
+fi
+source_dmg=$(realpath -- "$1")
+script=/usr/share/wiim-home-linux/wha-linux-0.2.10.4.sh
+if [[ ! -f "$script" ]]; then
+  echo 'Missing bundled upstream compatibility script.' >&2
+  exit 1
+fi
+if ! command -v uv >/dev/null; then
+  echo 'Missing uv. Install uv (e.g. sudo apt install uv, if available) before setup.' >&2
+  exit 1
+fi
+if ! command -v 7z >/dev/null; then
+  echo 'Missing 7z. Install 7zip (sudo apt install 7zip) before setup.' >&2
+  exit 1
+fi
+exec /usr/bin/bash "$script" "$source_dmg" --build-only

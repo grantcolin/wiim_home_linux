@@ -1,0 +1,124 @@
+{
+  "tidal-collection-diagnostics.patch": {
+    "Qml/Tidal/sections/TidalHomeTrackGridSection.qml": [
+      {
+        "length": 6,
+        "sha256": "f1abeb4cf886100447337f6c0c92763709c13e5dcd391c5942d64d06d2abbd30",
+        "edits": [
+          {
+            "line": 3,
+            "remove": 0,
+            "insert_file": "insert-03.txt"
+          }
+        ]
+      },
+      {
+        "length": 6,
+        "sha256": "ea5ea8243dd0a01fdb97727b9b54131854fd53ea940750d4c31912ae59e53cfa",
+        "edits": [
+          {
+            "line": 3,
+            "remove": 0,
+            "insert_file": "insert-04.txt"
+          }
+        ]
+      }
+    ],
+    "Qml/Tidal/sections/TidalHomeRailSection.qml": [
+      {
+        "length": 6,
+        "sha256": "c495b74ca60a9fb8e977397ea8bfa7936f7639f6004ef9ab340d5ec2b97aa99c",
+        "edits": [
+          {
+            "line": 3,
+            "remove": 0,
+            "insert_file": "insert-05.txt"
+          }
+        ]
+      }
+    ],
+    "Qml/Tidal/pages/TidalCollection.qml": [
+      {
+        "length": 6,
+        "sha256": "a38c2b006564c350ee287db959854afe6af1e264adfb5368022125197e9e5203",
+        "edits": [
+          {
+            "line": 3,
+            "remove": 0,
+            "insert_file": "insert-06.txt"
+          }
+        ]
+      }
+    ]
+  },
+  "tidal-collection-item-count.patch": {
+    "Qml/Tidal/pages/TidalCollection.qml": [
+      {
+        "length": 6,
+        "sha256": "465943fb891d95419196b3a881feeb72ff6a80209d9bdd12408a19ff9c941664",
+        "edits": [
+          {
+            "line": 3,
+            "remove": 0,
+            "insert_file": "insert-07.txt"
+          }
+        ]
+      },
+      {
+        "length": 10,
+        "sha256": "bebb4c0b810dac7e1925bf8a9c50ff0519375dde3413a7a1c91d06cd87738ac5",
+        "edits": [
+          {
+            "line": 3,
+            "remove": 1,
+            "insert_file": "insert-08.txt"
+          },
+          {
+            "line": 6,
+            "remove": 1,
+            "insert_file": "insert-09.txt"
+          }
+        ]
+      }
+    ],
+    "Qml/Tidal/sections/TidalHomeTrackGridSection.qml": [
+      {
+        "length": 7,
+        "sha256": "a9543ed66f4de2dc6dac2c64034e9af011dd60ee16eae698911636ca8026e9e9",
+        "edits": [
+          {
+            "line": 3,
+            "remove": 1,
+            "insert_file": "insert-10.txt"
+          }
+        ]
+      },
+      {
+        "length": 8,
+        "sha256": "55793b8d73ce060f05842592150be8def83e4acc61dcf81a99677110c4bf0d1e",
+        "edits": [
+          {
+            "line": 3,
+            "remove": 2,
+            "insert_file": "insert-11.txt"
+          }
+        ]
+      }
+    ]
+  },
+  "tidal-home-loading.patch": {
+    "Qml/Tidal/pages/TidalHome.qml": [
+      {
+        "length": 1,
+        "sha256": "8373f58acf8c6270d6bd28565515de4230a3060a63c93d5bf9a19153300aee7f",
+        "edits": [
+          {
+            "line": 0,
+            "remove": 1,
+            "insert_file": "insert-12.txt"
+          }
+        ]
+      }
+    ]
+  }
+}

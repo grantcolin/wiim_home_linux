@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=WiiM Home
+GenericName=Network Audio Controller
+Comment=Control WiiM audio devices on your local network
+Exec=wiim-home
+Icon=org.wiim.home
+Terminal=false
+Categories=AudioVideo;Audio;Qt;
+StartupNotify=true
+StartupWMClass=org.wiim.home

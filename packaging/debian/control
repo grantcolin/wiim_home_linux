@@ -1,0 +1,12 @@
+Package: wiim-home-linux
+Version: 0.2.10.4-1
+Section: sound
+Priority: optional
+Architecture: amd64
+Maintainer: WiiM Home Linux Community <noreply@localhost>
+Depends: bash, python3, p7zip-full | 7zip, qt6-base-dev-tools, ca-certificates
+Recommends: uv, libgl1, libegl1, libxkbcommon-x11-0, libxcb-cursor0
+Description: Native Linux converter and launcher for WiiM Home
+ Converts a user-supplied official WiiM Home macOS x86_64 DMG into a
+ local Linux runtime. The proprietary application is not included.
+ A network connection and uv Python package manager are needed for setup.

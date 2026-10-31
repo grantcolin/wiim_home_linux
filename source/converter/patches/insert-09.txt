@@ -1,0 +1,4 @@
+        if (modelObject.rowCount !== undefined) {
+            return Number(modelObject.rowCount()) > 0
+        }
+        return false

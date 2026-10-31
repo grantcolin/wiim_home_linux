@@ -1,0 +1,22 @@
+{
+  "tested_sources": [
+    {
+      "platform": "macOS x86_64 DMG",
+      "version": "WiiM Home 0.2.10.4",
+      "bundle_build": "20260920094034",
+      "sha256": "5feefadf65905219bd9cdca09b967719ed8cdf38563aa5f67a065b3f2924d39f",
+      "size_bytes": 78665242,
+      "python": "CPython 3.9",
+      "qt": "Qt 6 / PyQt6"
+    },
+    {
+      "platform": "macOS x86_64 DMG",
+      "version": "User-provided latest DMG (compatibility unverified)",
+      "bundle_build": "unknown",
+      "sha256": "beec68b88b546257187d101483f96ec11e4c0cd54365078e80d4d0d38ac4afd8",
+      "size_bytes": 86579145,
+      "python": "unknown (builder currently assumes CPython 3.9)",
+      "qt": "unknown (builder currently assumes Qt6)"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+    readonly property int collectionRevision: root.tidalCollectionState
+                                                  ? Number(root.tidalCollectionState.revision || 0)
+                                                  : 0

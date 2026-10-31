@@ -1,0 +1,37 @@
+            function logCollectionSection(label, section) {
+                if (!section) {
+                    return
+                }
+                var model = section.itemsModel
+                var rows = model && model.rowCount !== undefined ? Number(model.rowCount()) : -1
+                var effectiveCount = section.itemCount !== undefined ? Number(section.itemCount) : rows
+                var delegates = section.debugDelegateCount !== undefined ? Number(section.debugDelegateCount) : -1
+                root.debugLog("[TidalCollection] section=" + label
+                              + " model=" + String(model)
+                              + " rowCount=" + rows
+                              + " qmlCount=not-bound"
+                              + " effectiveItemCount=" + effectiveCount
+                              + " visible=" + Boolean(section.visible)
+                              + " height=" + Number(section.height)
+                              + " delegates=" + delegates)
+            }
+
+            function logCollectionSectionsAfterUpdate() {
+                if (!collectionContentRoot.sectionsReady) {
+                    return
+                }
+                logCollectionSection("playlists", userPlaylistsSection)
+                logCollectionSection("artists", favoriteArtistsSection)
+                logCollectionSection("albums", favoriteAlbumsSection)
+                logCollectionSection("tracks", favoriteTracksSection)
+            }
+
+            Connections {
+                target: root.tidalCollectionState
+                ignoreUnknownSignals: true
+
+                function onCollectionDataChanged() {
+                    Qt.callLater(collectionContentRoot.logCollectionSectionsAfterUpdate)
+                }
+            }
+

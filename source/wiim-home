@@ -1,0 +1,19 @@
+#!/usr/bin/bash
+set -euo pipefail
+base="${XDG_DATA_HOME:-$HOME/.local/share}/wha-linux"
+if [[ ! -d "$base" ]]; then
+  echo 'WiiM Home is not set up. Run: wiim-home-setup /path/to/official.dmg' >&2
+  exit 1
+fi
+mapfile -d '' -t runs < <(find "$base" -type f -path '*/out/WiiM-Home-Linux/run.sh' -print0 2>/dev/null)
+if ((${#runs[@]} == 0)); then
+  echo 'WiiM Home is not set up. Run: wiim-home-setup /path/to/official.dmg' >&2
+  exit 1
+fi
+# The upstream wrapper creates one directory per installer and builder hash.
+# Prefer the most recently built runtime when multiple versions exist.
+latest=""
+for candidate in "${runs[@]}"; do
+  if [[ -z "$latest" || "$candidate" -nt "$latest" ]]; then latest="$candidate"; fi
+done
+exec "$latest" "$@"
