@@ -1,6 +1,6 @@
 # WiiM Home Linux & WiiM Mini
 
-Community Linux compatibility tooling for WiiM Home, plus a standalone GTK mini player with fullscreen album-art effects. This is an unofficial project and is not affiliated with WiiM.
+Community Linux compatibility tooling for WiiM Home, plus a standalone GTK mini player with fullscreen album-art effects. This is an unofficial project and is not affiliated with WiiM. The was ported from the lastest macos wiim home dmg (30/10/2026).
 
 ## Screenshots
 
