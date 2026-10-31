@@ -40,6 +40,91 @@ See [repackaging instructions](packaging/README.md) for other distributions, inc
 
 The packages install compatibility tools, not the proprietary WiiM Home application. Supply your own official **macOS x86_64 DMG**. The converter checks its supported installer hashes; a different/newer DMG may require a converter update. Conversion downloads runtime dependencies.
 
+## Dependencies on newer Linux distributions
+
+These instructions target recent **x86_64 Fedora KDE and Ubuntu/Kubuntu** installations. Other distributions need equivalent packages. WiiM Home conversion requires an official macOS **x86_64** DMG; the supplied converter is not an ARM build.
+
+| Component | Requirements |
+| --- | --- |
+| WiiM Mini | System Python 3, GTK **3**, PyGObject, Pycairo and GI Cairo integration |
+| Mini artwork FX | Working OpenGL driver (Mesa on Intel/AMD), X11 or XWayland |
+| WiiM Home setup | Bash, Python 3, `uv`, 7-Zip providing `7z`, Qt 6 resource compiler (`rcc`), CA certificates and Internet access |
+| WiiM Home desktop runtime | Qt platform/system libraries, including XCB/XKB and OpenGL/EGL |
+| Desktop integration | A desktop session with D-Bus and a system tray; KDE Plasma provides these |
+
+Use distribution packages for Mini's GTK/Python bindings. Do not install its dependencies with `sudo pip`, and run Mini with the system Python. No separate NumPy, Pillow, PyOpenGL or AppIndicator Python package is required by Mini.
+
+### Fedora KDE
+
+Install dependencies for **both Home and Mini**:
+
+```bash
+sudo dnf install git curl ca-certificates python3 python3-gobject python3-cairo \
+  gtk3 xorg-x11-server-Xwayland mesa-dri-drivers libglvnd-glx libglvnd-egl \
+  uv 7zip qt6-qtbase qt6-qtbase-gui qt6-qtwayland qt6-qttools \
+  libxkbcommon-x11 xcb-util-cursor
+```
+
+The Home RPM also declares its Home-specific dependencies; installing it with `dnf` resolves those automatically.
+
+### Ubuntu / Kubuntu
+
+Install dependencies for **both Home and Mini**:
+
+```bash
+sudo apt update
+sudo apt install git curl ca-certificates python3 python3-gi python3-gi-cairo \
+  python3-cairo gir1.2-gtk-3.0 xwayland libgl1 libegl1 libgl1-mesa-dri \
+  7zip qt6-base-dev-tools qt6-wayland libxkbcommon-x11-0 libxcb-cursor0
+```
+
+If a package cannot be located, check that Ubuntu's **Universe** repository is enabled. Package availability depends on the release.
+
+Install `uv` with `sudo apt install uv` if your release provides it. Otherwise use the [official uv installer](https://docs.astral.sh/uv/getting-started/installation/), as your normal user:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+uv --version
+```
+
+Do not use `sudo` for the uv installer or for `wiim-home-setup`. The converter downloads its own Python 3.9.25 runtime and pinned packages, including PySide6, into the user installation. You do not need to replace your distro's Python or manually install those packages globally.
+
+### Quick dependency checks
+
+Run these in a terminal inside your desktop session:
+
+```bash
+python3 - <<'PY'
+import gi
+gi.require_version("Gtk", "3.0")
+gi.require_foreign("cairo")
+from gi.repository import Gtk, Gdk, GdkPixbuf, Gio
+import cairo
+import ctypes
+ctypes.CDLL("libGL.so.1")
+print("WiiM Mini: GTK 3, GI/Cairo and OpenGL library available")
+PY
+command -v uv
+command -v 7z
+```
+
+The Mini check verifies imports/libraries, not actual GPU performance. Qt's `rcc` is often outside PATH; the converter also checks `/usr/lib/qt6/libexec/rcc` and `/usr/lib64/qt6/libexec/rcc`.
+
+The converter currently calls **`7z`**, not `7zz`. If your distribution installs only `7zz`, add a user-local compatibility link:
+
+```bash
+if ! command -v 7z >/dev/null && command -v 7zz >/dev/null; then
+  mkdir -p "$HOME/.local/bin"
+  ln -s "$(command -v 7zz)" "$HOME/.local/bin/7z"
+fi
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+For **Mini only**, skip the Home-only packages (`uv`, 7-Zip and Qt 6). For repackaging, see [build requirements](packaging/README.md); end users do not need RPM/DEB build tools.
+
+Dependency references: [PyGObject installation](https://pygobject.gnome.org/getting_started.html), [Cairo integration](https://pygobject.gnome.org/guide/cairo_integration.html), [Fedora uv package](https://packages.fedoraproject.org/pkgs/uv/uv/), and [Ubuntu uv availability](https://packages.ubuntu.com/uv). PyGObject's generic examples use GTK 4; this application explicitly requires GTK 3.
+
 ## Install WiiM Home
 
 Clone this repository and enter it:
