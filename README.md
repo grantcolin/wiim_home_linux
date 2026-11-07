@@ -2,18 +2,6 @@
 
 Community Linux compatibility tooling for WiiM Home, plus a standalone GTK mini player with fullscreen album-art effects. This is an unofficial project and is not affiliated with WiiM. The was ported from the lastest macos wiim home dmg (30/10/2026).
 
-## Upstream credits
-
-The WiiM Home conversion tooling in this repository is derived from **[clauded/wha-linux](https://github.com/clauded/wha-linux)**, based on its **0.2.10.4** converter. Substantial portions of that tooling are reused here. Credit for the original Linux conversion approach and implementation belongs to the upstream project.
-
-The [upstream credits](https://github.com/clauded/wha-linux#credits) name **Malfman** as the original author and **clauded** and **Samuel-Boehm** as contributors. Samuel-Boehm's listed contributions relate to the later 0.2.10.5 work; this repository's original converter base is 0.2.10.4.
-
-The upstream tooling extracts WiiM Home's platform-independent Python/Qt code and resources from a user-supplied official macOS DMG, sets up a Linux runtime, and applies compatibility patches. It is specific to WiiM Home, rather than a general macOS-to-Linux converter. The WiiM Home application itself remains WiiM's work.
-
-This repository adds distribution packaging, additional compatibility fixes, TIDAL startup and tray/Mini integration patches, and KDE setup scripts. **WiiM Mini** (`mini/wiim_tray.py`) is a separate GTK player developed for this project, with its own controls and artwork effects; it is not the upstream WiiM Home converter or the official WiiM Home interface.
-
-Thank you to the upstream authors and contributors for making the Linux conversion tooling available.
-
 ## Screenshots
 
 ### WiiM Home on KDE
@@ -206,8 +194,18 @@ This creates a deep-purple WiiM Mini icon in the KDE application menu and enable
 - GPU performance varies with display resolution and drivers. No minimum frame rate is guaranteed.
 - These are the user's supplied working builds; syntax checks do not replace fresh installation testing on every distribution.
 
-## Source and provenance
+## Upstream credits
 
-The initial snapshot preserves all five files from `wiim_home_linux(2).zip` byte-for-byte. They match the saved `wiim_home_linux_fix3.zip`. The extra `source/` files are extracted from the included DEB, rather than copied from an older source archive. The RPM and DEB retain their original versions and have not been rebuilt for this publication.
+The WiiM Home conversion tooling in this repository is derived from **[clauded/wha-linux](https://github.com/clauded/wha-linux)**, based on its **0.2.10.4** converter. Substantial portions of that tooling are reused here. Credit for the original Linux conversion approach and implementation belongs to the upstream project.
+
+The [upstream credits](https://github.com/clauded/wha-linux#credits) name **Malfman** as the original author and **clauded** and **Samuel-Boehm** as contributors. Samuel-Boehm's listed contributions relate to the later 0.2.10.5 work; this repository's original converter base is 0.2.10.4.
+
+The upstream tooling extracts WiiM Home's platform-independent Python/Qt code and resources from a user-supplied official macOS DMG, sets up a Linux runtime, and applies compatibility patches. It is specific to WiiM Home, rather than a general macOS-to-Linux converter. The WiiM Home application itself remains WiiM's work.
+
+This repository adds distribution packaging, additional compatibility fixes, TIDAL startup and tray/Mini integration patches, and KDE setup scripts. **WiiM Mini** (`mini/wiim_tray.py`) is a separate GTK player developed for this project, with its own controls and artwork effects; it is not the upstream WiiM Home converter or the official WiiM Home interface.
+
+Thank you to the upstream authors and contributors for making the Linux conversion tooling available.
+
+## Source and provenance
 
 `SHA256SUMS` records the packaged files, patches and Mini source. No proprietary DMG or converted application runtime is included. Existing third-party notices in the tooling remain applicable; publication does not grant rights to WiiM's application or trademarks.
