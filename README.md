@@ -2,6 +2,18 @@
 
 Community Linux compatibility tooling for WiiM Home, plus a standalone GTK mini player with fullscreen album-art effects. This is an unofficial project and is not affiliated with WiiM. The was ported from the lastest macos wiim home dmg (30/10/2026).
 
+## Upstream credits
+
+The WiiM Home conversion tooling in this repository is derived from **[clauded/wha-linux](https://github.com/clauded/wha-linux)**, based on its **0.2.10.4** converter. Substantial portions of that tooling are reused here. Credit for the original Linux conversion approach and implementation belongs to the upstream project.
+
+The [upstream credits](https://github.com/clauded/wha-linux#credits) name **Malfman** as the original author and **clauded** and **Samuel-Boehm** as contributors. Samuel-Boehm's listed contributions relate to the later 0.2.10.5 work; this repository's original converter base is 0.2.10.4.
+
+The upstream tooling extracts WiiM Home's platform-independent Python/Qt code and resources from a user-supplied official macOS DMG, sets up a Linux runtime, and applies compatibility patches. It is specific to WiiM Home, rather than a general macOS-to-Linux converter. The WiiM Home application itself remains WiiM's work.
+
+This repository adds distribution packaging, additional compatibility fixes, TIDAL startup and tray/Mini integration patches, and KDE setup scripts. **WiiM Mini** (`mini/wiim_tray.py`) is a separate GTK player developed for this project, with its own controls and artwork effects; it is not the upstream WiiM Home converter or the official WiiM Home interface.
+
+Thank you to the upstream authors and contributors for making the Linux conversion tooling available.
+
 ## Screenshots
 
 ### WiiM Home on KDE
