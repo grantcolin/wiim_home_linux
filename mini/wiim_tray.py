@@ -2,7 +2,7 @@
 from pathlib import Path  # WIIM_GLOBAL_PATH_FIX
 # WIIM_LOCAL_GPU_FALLBACK_V28
 import sys
-WIIM_TRAY_BUILD = "art-effects-v9-fx-awake"
+WIIM_TRAY_BUILD = "art-effects-v9-fx-awake-reconnect1"
 if "--version" in sys.argv:
     print("WiiM mini player:", WIIM_TRAY_BUILD)
     raise SystemExit(0)
@@ -554,6 +554,7 @@ class WiiMControllerApp:
         self.muted = False
         self.album_art_url = ""
         self.is_scanning = False
+        self.discovery_retry_at = 0.0
         self.fail_count = 0
         self.raw_pixbuf = None
         self.updating_slider = False
@@ -2138,105 +2139,112 @@ callDBus(cfg.bus, "/WiiMHomeProbe", "org.wiim.Tray.HomeProbe",
                 break
 
     def start_discovery(self):
-        if self.is_scanning:
+        if self.is_scanning or time.monotonic() < self.discovery_retry_at:
             return
         self.is_scanning = True
-        GLib.idle_add(self.lbl_title.set_text, "Searching LAN...")
-        threading.Thread(target=self.discover_wiim_logic, daemon=True).start()
+        self.lbl_title.set_text("Searching LAN...")
+        try:
+            threading.Thread(target=self.discover_wiim_logic, daemon=True).start()
+        except Exception as exc:
+            print(f"WiiM discovery could not start: {exc}", flush=True)
+            self.apply_discovery_result(None)
 
     def discover_wiim_logic(self):
+        # Workers only return results; connection state belongs to the GTK thread.
         found_ip = None
+        try:
+            found_ip = self.find_wiim_ip()
+        except Exception as exc:
+            print(f"WiiM discovery error: {exc}", flush=True)
+        finally:
+            GLib.idle_add(self.apply_discovery_result, found_ip)
+
+    def find_wiim_ip(self):
+        def test_ip(ip, timeout=0.5):
+            try:
+                url = f"https://{ip}/httpapi.asp?command=getPlayerStatus"
+                with urllib.request.urlopen(url, context=SSL_CTX, timeout=timeout) as response:
+                    data = json.loads(response.read().decode('utf-8'))
+                if isinstance(data, dict) and 'status' in data:
+                    return ip
+            except Exception:
+                pass
+            return None
+
         try:
             with open(os.path.join(ICON_DIR, "wiim_tray_device_ip.txt"), "r") as ip_file:
                 cached_ip = ip_file.read().strip()
-            if cached_ip.count(".") == 3:
-                url = f"https://{cached_ip}/httpapi.asp?command=getPlayerStatus"
-                with urllib.request.urlopen(url, context=SSL_CTX, timeout=1.2) as response:
-                    cached_status = json.loads(response.read().decode("utf-8"))
-                if isinstance(cached_status, dict) and ("status" in cached_status or "vol" in cached_status):
-                    found_ip = cached_ip
-        except Exception:
-            found_ip = None
+            if cached_ip.count(".") == 3 and test_ip(cached_ip, 1.2):
+                return cached_ip
+        except OSError:
+            pass
 
+        try:
+            ssdp_msg = (
+                "M-SEARCH * HTTP/1.1\r\n"
+                "HOST: 239.255.255.250:1900\r\n"
+                'MAN: "ssdp:discover"\r\n'
+                "MX: 2\r\n"
+                "ST: urn:schemas-upnp-org:device:MediaRenderer:1\r\n\r\n"
+            ).encode('utf-8')
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP) as sock:
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                sock.sendto(ssdp_msg, ("239.255.255.250", 1900))
+                deadline = time.monotonic() + 3.0
+                checked = set()
+                while time.monotonic() < deadline:
+                    sock.settimeout(max(0.01, deadline - time.monotonic()))
+                    data, addr = sock.recvfrom(65536)
+                    ip = addr[0]
+                    if ip not in checked:
+                        checked.add(ip)
+                        if test_ip(ip):
+                            return ip
+        except OSError:
+            pass
+
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+                sock.connect(('8.8.8.8', 80))
+                local_ip = sock.getsockname()[0]
+            prefix = ".".join(local_ip.split('.')[:3]) + "."
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+            with ThreadPoolExecutor(max_workers=60) as executor:
+                futures = [executor.submit(test_ip, f"{prefix}{i}", 0.25)
+                           for i in range(1, 255)]
+                for future in as_completed(futures):
+                    found_ip = future.result()
+                    if found_ip:
+                        for pending in futures:
+                            pending.cancel()
+                        return found_ip
+        except OSError:
+            pass
+        return None
+
+    def apply_discovery_result(self, found_ip):
+        self.is_scanning = False
+        self.wiim_ip = found_ip
         if found_ip:
-            self.wiim_ip = found_ip
+            self.discovery_retry_at = 0.0
+            self.fail_count = 0
+            self.queue_dirty = True
+            self.audio_dirty = True
+            self.audio_tries = 0
             try:
                 with open(os.path.join(ICON_DIR, "wiim_tray_device_ip.txt"), "w") as ip_file:
                     ip_file.write(found_ip)
             except OSError:
                 pass
-            self.fail_count = 0
-            self.queue_dirty = True
-            GLib.idle_add(self.lbl_title.set_text, f"WiiM ({found_ip})")
-            self.is_scanning = False
-            return
-
-        try:
-            ssdp_addr = "239.255.255.250"
-            ssdp_port = 1900
-            ssdp_msg = (
-                "M-SEARCH * HTTP/1.1\r\n"
-                f"HOST: {ssdp_addr}:{ssdp_port}\r\n"
-                "MAN: \"ssdp:discover\"\r\n"
-                "MX: 2\r\n"
-                "ST: urn:schemas-upnp-org:device:MediaRenderer:1\r\n\r\n"
-            ).encode('utf-8')
-
-            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            sock.settimeout(3)
-            sock.sendto(ssdp_msg, (ssdp_addr, ssdp_port))
-
-            while True:
-                data, addr = sock.recvfrom(65536)
-                packet = data.decode('utf-8', errors='ignore')
-                if any(k in packet for k in ["LinkPlay", "WiiM", "MediaRenderer", "Upnp"]):
-                    found_ip = addr[0]
-                    break
-        except Exception:
-            pass
-
-        if not found_ip:
-            try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                s.connect(('8.8.8.8', 80))
-                local_ip = s.getsockname()[0]
-                s.close()
-
-                prefix = ".".join(local_ip.split('.')[:3]) + "."
-
-                def test_ip(ip):
-                    try:
-                        url = f"https://{ip}/httpapi.asp?command=getPlayerStatus"
-                        req = urllib.request.urlopen(url, context=SSL_CTX, timeout=0.25)
-                        data = json.loads(req.read().decode('utf-8'))
-                        if 'status' in data or 'vol' in data:
-                            return ip
-                    except Exception:
-                        pass
-                    return None
-
-                ips = [f"{prefix}{i}" for i in range(1, 255)]
-                from concurrent.futures import ThreadPoolExecutor, as_completed
-                with ThreadPoolExecutor(max_workers=60) as executor:
-                    futures = {executor.submit(test_ip, ip): ip for ip in ips}
-                    for future in as_completed(futures):
-                        res = future.result()
-                        if res:
-                            found_ip = res
-                            break
-            except Exception:
-                pass
-
-        if found_ip:
-            self.wiim_ip = found_ip
-            self.fail_count = 0
-            self.queue_dirty = True
-            GLib.idle_add(self.lbl_title.set_text, f"WiiM ({self.wiim_ip})")
+            self.lbl_title.set_text(f"WiiM ({found_ip})")
+            print(f"WiiM connected: {found_ip}", flush=True)
+            self.poll_device_status()
         else:
-            GLib.idle_add(self.lbl_title.set_text, "WiiM Not Found")
-
-        self.is_scanning = False
+            # Keep retrying after suspend, Wi-Fi loss, or a device restart.
+            self.discovery_retry_at = time.monotonic() + 15.0
+            self.lbl_title.set_text("WiiM offline — retrying...")
+            print("WiiM offline; discovery will retry in 15 seconds", flush=True)
+        return False
 
     # ---------- device control ----------
 
@@ -2274,7 +2282,10 @@ callDBus(cfg.bus, "/WiiMHomeProbe", "org.wiim.Tray.HomeProbe",
                 self.commands.task_done()
 
     def poll_device_status(self):
-        if not self.wiim_ip or self.is_scanning or self.poll_fetching:
+        if self.is_scanning or self.poll_fetching:
+            return True
+        if not self.wiim_ip:
+            self.start_discovery()
             return True
         self.poll_fetching = True
         threading.Thread(target=self.fetch_status_thread, args=(self.wiim_ip,), daemon=True).start()
