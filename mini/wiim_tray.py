@@ -2,7 +2,7 @@
 from pathlib import Path  # WIIM_GLOBAL_PATH_FIX
 # WIIM_LOCAL_GPU_FALLBACK_V28
 import sys
-WIIM_TRAY_BUILD = "art-effects-v9-fx-awake-reconnect1"
+WIIM_TRAY_BUILD = "art-effects-v9-fx-awake-reconnect1-screen2"
 if "--version" in sys.argv:
     print("WiiM mini player:", WIIM_TRAY_BUILD)
     raise SystemExit(0)
@@ -4379,7 +4379,7 @@ _wiim_round_effects(WiiMControllerApp)
 # WIIM_SCREENSAVER_BEGIN
 # Keeps the display awake ONLY while an animated artwork effect is really playing fullscreen.
 #  * Cover (static image) never inhibits: the system screensaver / OLED protection stays active.
-#  * Pause, stop, end of album/playlist, leaving fullscreen, hiding the window or losing focus
+#  * Pause, stop, end of album/playlist, leaving fullscreen, hiding the window
 #    release the inhibition straight away, so the normal screensaver timer takes over again.
 #  * Failsafe: with no keyboard/mouse input for FX_AWAKE_MAX_IDLE_HOURS the inhibition is dropped.
 import time as _wiim_ss_time
@@ -4395,7 +4395,7 @@ class _WiiMScreenGuard:
         'screensaver': ('org.freedesktop.ScreenSaver',
                         ('/org/freedesktop/ScreenSaver', '/ScreenSaver'),
                         'org.freedesktop.ScreenSaver'),
-        'power': ('org.freedesktop.PowerManagement',
+        'power': ('org.freedesktop.PowerManagement.Inhibit',
                   ('/org/freedesktop/PowerManagement/Inhibit',),
                   'org.freedesktop.PowerManagement.Inhibit'),
     }
@@ -4406,6 +4406,13 @@ class _WiiMScreenGuard:
         self.pending = set()    # keys with an Inhibit call in flight
         self.holding = False
         self.warned = set()
+        self.retry_at = {}
+        self.generations = {key: 0 for key in self.SPECS}
+        self.closed = False
+        self.owner_subscription = app.tray.conn.signal_subscribe(
+            'org.freedesktop.DBus', 'org.freedesktop.DBus', 'NameOwnerChanged',
+            '/org/freedesktop/DBus', None, Gio.DBusSignalFlags.NONE,
+            self.owner_changed, None)
         self.timer = GLib.timeout_add_seconds(2, self.poll)
 
     # ----- decision -----
@@ -4420,8 +4427,6 @@ class _WiiMScreenGuard:
         if (not app.window.get_visible() or not app.window.get_mapped()
                 or getattr(app, 'minimized', False)):
             return False, 'player window hidden'
-        if not app.window.is_active():
-            return False, 'player window not focused'
         if getattr(app, 'connect_stopped', False) or not app.is_playing:
             return False, 'playback paused or finished'
         if app.raw_pixbuf is None:
@@ -4436,11 +4441,13 @@ class _WiiMScreenGuard:
     def check(self):
         try:
             want, why = self.decide()
-            if want and not self.holding:
+            if self.closed:
+                return False
+            if want:
                 self.holding = True
+                # Failed calls must be retried even while fullscreen stays active.
                 self.acquire()
-                print('WiiM screen saver: kept awake (%s, fullscreen)' % self.app.art_effect, flush=True)
-            elif not want and self.holding:
+            elif self.holding:
                 self.holding = False
                 self.release()
                 print('WiiM screen saver: released - %s' % why, flush=True)
@@ -4454,30 +4461,51 @@ class _WiiMScreenGuard:
 
     # ----- D-Bus -----
 
+    def owner_changed(self, conn, sender, path, interface, signal, params, data):
+        name, old_owner, new_owner = params.unpack()
+        for key, (bus, paths, iface) in self.SPECS.items():
+            if name == bus:
+                # Cookies belong to the old service, not its replacement.
+                self.generations[key] += 1
+                self.cookies.pop(key, None)
+                self.pending.discard(key)
+                self.retry_at.pop(key, None)
+                self.warned.discard(key)
+        # The regular timer reacquires after a KDE service restart.
+
     def acquire(self):
         for key in self.SPECS:
-            if key not in self.cookies and key not in self.pending:
+            if (key not in self.cookies and key not in self.pending
+                    and _wiim_ss_time.monotonic() >= self.retry_at.get(key, 0)):
                 self.pending.add(key)
                 self._inhibit(key, 0)
 
     def _inhibit(self, key, alt):
         bus, paths, iface = self.SPECS[key]
+        generation = self.generations[key]
 
         def done(conn, res, _data):
             try:
                 cookie = conn.call_finish(res).unpack()[0]
             except Exception as exc:
-                if alt + 1 < len(paths):
+                if generation != self.generations[key]:
+                    return
+                if alt + 1 < len(paths) and not self.closed:
                     self._inhibit(key, alt + 1)
                     return
                 self.pending.discard(key)
+                self.retry_at[key] = _wiim_ss_time.monotonic() + 15.0
                 if key not in self.warned:
                     self.warned.add(key)
                     print('WiiM screen saver: %s inhibit unavailable (%s)' % (key, exc), flush=True)
                 return
+            if generation != self.generations[key]:
+                return
             self.pending.discard(key)
-            if self.holding and key not in self.cookies:
+            if self.holding and not self.closed and key not in self.cookies:
                 self.cookies[key] = (cookie, paths[alt])
+                self.warned.discard(key)
+                print('WiiM screen saver: %s inhibition confirmed' % key, flush=True)
             else:                      # state changed while the call was in flight
                 self._uninhibit(key, cookie, paths[alt])
 
@@ -4485,9 +4513,10 @@ class _WiiMScreenGuard:
             self.app.tray.conn.call(
                 bus, paths[alt], iface, 'Inhibit',
                 GLib.Variant('(ss)', (self.APP_NAME, self.REASON)),
-                GLib.VariantType('(u)'), Gio.DBusCallFlags.NONE, 3000, None, done, None)
+                GLib.VariantType('(u)'), Gio.DBusCallFlags.NO_AUTO_START, 3000, None, done, None)
         except Exception as exc:
             self.pending.discard(key)
+            self.retry_at[key] = _wiim_ss_time.monotonic() + 15.0
             print('WiiM screen saver: %s inhibit failed (%s)' % (key, exc), flush=True)
 
     def _uninhibit(self, key, cookie, path, sync=False):
@@ -4509,7 +4538,9 @@ class _WiiMScreenGuard:
         self.cookies.clear()
 
     def shutdown(self):
+        self.closed = True
         self.holding = False
+        self.app.tray.conn.signal_unsubscribe(self.owner_subscription)
         self.release(sync=True)
         if self.timer:
             GLib.source_remove(self.timer)
