@@ -2,7 +2,7 @@
 from pathlib import Path  # WIIM_GLOBAL_PATH_FIX
 # WIIM_LOCAL_GPU_FALLBACK_V28
 import sys
-WIIM_TRAY_BUILD = "art-effects-v9-fx-awake-reconnect1-screen2"
+WIIM_TRAY_BUILD = "art-effects-v9-fx-awake-reconnect1-screen2-end1"
 if "--version" in sys.argv:
     print("WiiM mini player:", WIIM_TRAY_BUILD)
     raise SystemExit(0)
@@ -2314,11 +2314,42 @@ callDBus(cfg.bus, "/WiiMHomeProbe", "org.wiim.Tray.HomeProbe",
             error = str(e)
         GLib.idle_add(self.apply_status_result, ip, status_data, meta_data, error)
 
+    def check_fullscreen_playback_end(self, state, status_data):
+        """Confirm the end across polls so track transitions don't exit fullscreen."""
+        position = to_int(status_data.get('curpos', 0))
+        duration = to_int(status_data.get('totlen', 0))
+        # Some sources report pause at EOF; others report stop and reset curpos.
+        ended = (state == 'stop' or
+                 (state == 'pause' and duration > 0 and position >= duration))
+        if not self.fullscreen_mode or not ended:
+            self._fullscreen_end_since = None
+            self._fullscreen_end_samples = 0
+            return
+        now = time.monotonic()
+        if getattr(self, '_fullscreen_end_since', None) is None:
+            self._fullscreen_end_since = now
+            self._fullscreen_end_samples = 1
+            return
+        self._fullscreen_end_samples += 1
+        if self._fullscreen_end_samples < 3 or now - self._fullscreen_end_since < 6.0:
+            return
+        self._fullscreen_end_since = None
+        self._fullscreen_end_samples = 0
+        # Release immediately, even if restoring the window encounters an error.
+        guard = getattr(self, '_wiim_screen_guard', None)
+        if guard is not None:
+            guard.holding = False
+            guard.release()
+        self.set_fullscreen_mode(False)
+        print('WiiM: playback finished; left fullscreen and released screensaver', flush=True)
+
     def apply_status_result(self, ip, status_data, meta_data, error):
         self.poll_fetching = False
         if ip != self.wiim_ip:
             return False
         if error:
+            self._fullscreen_end_since = None
+            self._fullscreen_end_samples = 0
             self.fail_count += 1
             if self.fail_count >= 4:
                 self.wiim_ip = None
@@ -2327,8 +2358,9 @@ callDBus(cfg.bus, "/WiiMHomeProbe", "org.wiim.Tray.HomeProbe",
         try:
             self.fail_count = 0
 
-            state = status_data.get('status', 'pause')
+            state = str(status_data.get('status', 'pause')).lower()
             self.is_playing = (state == 'play')
+            self.check_fullscreen_playback_end(state, status_data)
             self.update_art_animation()
             vol = to_int(status_data.get('vol', 50), 50)
             self.muted = str(status_data.get('mute', '0')) == '1'
